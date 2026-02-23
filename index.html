@@ -1,14 +1,190 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>La Ruota delle Decisioni</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: radial-gradient(circle, #2c3e50, #000000);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        h1 { margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+
+        #canvas-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        #arrow {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; 
+            height: 0; 
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #f1c40f;
+            z-index: 10;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+        }
+
+        canvas {
+            border: 8px solid #ecf0f1;
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            cursor: pointer;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: #c0392b;
+            transform: scale(1.05);
+        }
+
+        button:active { transform: scale(0.95); }
+
+        #result {
+            margin-top: 25px;
+            font-size: 2rem;
+            height: 2.5rem;
+            font-weight: bold;
+            color: #f1c40f;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <h1>Parliamo dei maschi</h1>
-    <h3>I maschi sono esseri viventi molto strani a tratti, spprattutto perchè gli piace rischiare la vita.
-    </h3>
-    
+
+    <h1>Cosa facciamo oggi?</h1>
+
+    <div id="canvas-container">
+        <div id="arrow"></div>
+        <canvas id="wheel" width="450" height="450"></canvas>
+    </div>
+
+    <button onclick="spin()">GIRA LA RUOTA</button>
+    <div id="result"></div>
+
+    <script>
+        // Opzioni scelte per te
+        const options = [
+            "Pizza Party 🍕", 
+            "Gaming Night 🎮", 
+            "Film Horror 🍿", 
+            "Allenamento 🏃‍♂️", 
+            "Cucina qualcosa 👨‍🍳", 
+            "Ascolta Musica 🎧", 
+            "Leggi un libro 📚", 
+            "Chiama un amico 📱"
+        ];
+        
+        const colors = ["#1abc9c", "#3498db", "#9b59b6", "#34495e", "#f1c40f", "#e67e22", "#e74c3c", "#95a5a6"];
+
+        const canvas = document.getElementById("wheel");
+        const ctx = canvas.getContext("2d");
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = canvas.width / 2;
+
+        let currentRotation = 0;
+        let isSpinning = false;
+
+        function drawWheel() {
+            const sliceAngle = (2 * Math.PI) / options.length;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            options.forEach((text, i) => {
+                const angle = currentRotation + i * sliceAngle;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + sliceAngle);
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = "#ffffff44";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "white";
+                ctx.font = "bold 18px Arial";
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = "black";
+                ctx.fillText(text, radius - 30, 10);
+                ctx.restore();
+            });
+        }
+
+        function spin() {
+            if (isSpinning) return;
+            isSpinning = true;
+            document.getElementById("result").innerText = "Vediamo...";
+
+            const spinDuration = 4000; 
+            const startRotation = currentRotation;
+            const randomExtra = Math.random() * (Math.PI * 2);
+            const extraSpins = (Math.random() * 8 + 7) * 2 * Math.PI; 
+            const targetRotation = startRotation + extraSpins + randomExtra;
+            const startTime = performance.now();
+
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / spinDuration, 1);
+                
+                // Ease out cubic
+                const easeOut = 1 - Math.pow(1 - progress, 4);
+                
+                currentRotation = startRotation + (targetRotation - startRotation) * easeOut;
+                
+                drawWheel();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    isSpinning = false;
+                    determineWinner();
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function determineWinner() {
+            const sliceAngle = (2 * Math.PI) / options.length;
+            // Calcolo corretto basato sulla posizione della freccia (ore 12)
+            const normalizedRotation = (currentRotation % (2 * Math.PI));
+            const pointerAngle = (1.5 * Math.PI - normalizedRotation) % (2 * Math.PI);
+            const finalAngle = pointerAngle < 0 ? pointerAngle + 2 * Math.PI : pointerAngle;
+            
+            const index = Math.floor(finalAngle / sliceAngle);
+            document.getElementById("result").innerText = "✨ " + options[index] + " ✨";
+        }
+
+        drawWheel();
+    </script>
 </body>
 </html>
